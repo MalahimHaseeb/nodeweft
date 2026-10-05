@@ -1,0 +1,75 @@
+{
+  "nodes": [
+    {"id": "start", "type": "trigger.manual", "name": "Run manually", "position": {"x": 0, "y": 0}, "config": {}},
+    {
+      "id": "developers",
+      "type": "data.static",
+      "name": "Developers",
+      "position": {"x": 220, "y": 0},
+      "config": {
+        "items": [
+          {"name": "Ayesha", "email": "ayesha@example.com", "skills": "python, fastapi, postgres"},
+          {"name": "Bilal", "email": "bilal@example.com", "skills": "react, nextjs, typescript"},
+          {"name": "Hira", "email": "hira@example.com", "skills": "devops, aws, kubernetes"}
+        ]
+      }
+    },
+    {
+      "id": "tasks",
+      "type": "excel.read",
+      "name": "Read tasks file",
+      "position": {"x": 440, "y": 0},
+      "config": {"source": "local", "path": "tasks.csv"}
+    },
+    {
+      "id": "claim",
+      "type": "memory.claim",
+      "name": "Skip already assigned",
+      "position": {"x": 660, "y": 0},
+      "config": {"namespace": "assignments", "key": "task:{{item.id}}"}
+    },
+    {
+      "id": "assign",
+      "type": "ai.agent",
+      "name": "Pick developer",
+      "position": {"x": 880, "y": 0},
+      "config": {
+        "instructions": "You assign engineering tasks to developers. Choose the best fit by skills and by how many tasks each developer already holds. Use memory_list with namespace assignments to see existing assignments.",
+        "task": "Developers:\n{{nodes.developers.items}}\n\nTask:\n{{item}}",
+        "output_fields": [
+          {"name": "assignee_email", "type": "string", "description": "Email of the chosen developer, copied exactly from the developers list"},
+          {"name": "reason", "type": "string", "description": "One short sentence explaining the choice"}
+        ],
+        "tools": ["memory_list"],
+        "max_steps": 4,
+        "concurrency": 2
+      }
+    },
+    {
+      "id": "remember",
+      "type": "memory.set",
+      "name": "Remember assignment",
+      "position": {"x": 1100, "y": 0},
+      "config": {"namespace": "assignments", "key": "task:{{item.id}}", "value": "{{item.ai.assignee_email}}"}
+    },
+    {
+      "id": "notify",
+      "type": "email.send",
+      "name": "Email developer",
+      "position": {"x": 1320, "y": 0},
+      "config": {
+        "to": "{{item.ai.assignee_email}}",
+        "subject": "New task: {{item.title}}",
+        "body": "Hi,\n\nYou have been assigned: {{item.title}}\n\n{{item.description}}\n\nWhy you: {{item.ai.reason}}"
+      }
+    }
+  ],
+  "edges": [
+    {"source": "start", "target": "developers"},
+    {"source": "developers", "target": "tasks"},
+    {"source": "tasks", "target": "claim"},
+    {"source": "claim", "target": "assign"},
+    {"source": "assign", "target": "remember"},
+    {"source": "remember", "target": "notify"}
+  ]
+}

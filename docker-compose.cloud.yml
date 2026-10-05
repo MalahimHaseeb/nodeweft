@@ -1,0 +1,29 @@
+services:
+  auth:
+    build:
+      context: .
+      dockerfile: services/auth/Dockerfile
+    env_file: auth.env
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+
+  workflow:
+    build:
+      context: .
+      dockerfile: services/workflow/Dockerfile
+    env_file: workflow.env
+    ports:
+      - "8002:8000"
+    restart: unless-stopped
+
+  execution:
+    build:
+      context: .
+      dockerfile: services/execution/Dockerfile
+    env_file: execution.env
+    depends_on:
+      - workflow
+    ports:
+      - "8003:8000"
+    restart: unless-stopped

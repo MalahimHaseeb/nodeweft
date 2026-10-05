@@ -1,0 +1,11 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic>=2.7
+pydantic-settings>=2.3
+email-validator>=2.1
+pyjwt>=2.8
+redis>=5.0.1
+sqlalchemy[asyncio]>=2.0.30
+asyncpg>=0.29
+aiosmtplib>=3.0
+jsonschema>=4.22

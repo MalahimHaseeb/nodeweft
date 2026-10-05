@@ -1,0 +1,5 @@
+id,title,description,skill,priority
+101,Add rate limit headers,Expose remaining quota headers on the public API,python,high
+102,Fix dashboard chart overflow,Charts overflow on small screens in the dashboard page,react,medium
+103,Rotate staging secrets,Rotate database and API secrets in the staging cluster,devops,high
+104,Write OTP resend tests,Cover resend cooldown and hourly cap in tests,python,low

@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workflow
+  namespace: nodeweft
+  labels:
+    app: workflow
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: workflow
+  template:
+    metadata:
+      labels:
+        app: workflow
+      annotations:
+        nodeweft/env-hash: "${ENV_HASH_WORKFLOW}"
+    spec:
+      imagePullSecrets:
+        - name: ecr-pull
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: workflow
+          image: ${ECR_REGISTRY}/nodeweft-workflow:${IMAGE_TAG}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - secretRef:
+                name: workflow-env
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 5
+            failureThreshold: 36
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 10001
+            capabilities:
+              drop:
+                - ALL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workflow
+  namespace: nodeweft
+  labels:
+    app: workflow
+spec:
+  type: NodePort
+  selector:
+    app: workflow
+  ports:
+    - name: http
+      port: 8000
+      targetPort: 8000
+      nodePort: 30002
