@@ -11,6 +11,18 @@ A workflow automation platform (n8n-style). Users build node graphs (trigger, da
 > The architecture is designed to handle around **1 million requests per day** and to **scale out as traffic grows**. CloudFront, a load balancer, Kubernetes, SQS and Redis are all in place, so capacity grows by adding replicas and nodes. See [Scaling](#scaling).
 
 ---
+## Screenshots
+
+| Sign in | Dashboard |
+|---|---|
+| ![Sign in](docs/screenshots/login.png) | ![Dashboard](docs/screenshots/dashboard.png) |
+
+| Workflow editor | Run logs |
+|---|---|
+| ![Workflow editor](docs/screenshots/workflow-editor.png) | ![Run logs](docs/screenshots/run-logs.png) |
+
+---
+
 
 ## Architecture
 
