@@ -1,0 +1,9 @@
+region                     = "eu-west-1"
+alb_domain                 = "origin-nodebackend.malahim.dev"
+cdn_domain                 = "nodebackend.malahim.dev"
+alb_certificate_arn        = "arn:aws:acm:eu-west-1:099814429647:certificate/a1b8b974-fb45-46ea-b1e4-a5ea57cb05c5"
+cloudfront_certificate_arn = "arn:aws:acm:us-east-1:099814429647:certificate/a7a531e1-ff79-4300-afdb-4f9f05532092"
+files_bucket_name          = "nodeweft-files"
+sqs_queue_arn              = "arn:aws:sqs:eu-west-1:099814429647:nodeweft-runs"
+instance_type              = "t3.medium"
+enable_waf                 = false

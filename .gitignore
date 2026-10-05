@@ -1,10 +1,22 @@
+cat > .gitignore <<'EOF'
+# secrets
 .env
+*.env
+*.prod.env
+
+# terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+*.tfvars
+!terraform.tfvars.example
+crash.log
+
+# python
 __pycache__/
 *.pyc
 .pytest_cache/
 .ruff_cache/
 .venv/
-*.zip
-pr.txt
-*.env
-deploy/terraform
+EOF

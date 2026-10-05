@@ -1,0 +1,50 @@
+#!/bin/bash
+set -euxo pipefail
+
+dnf install -y gettext jq
+
+mkdir -p /etc/nodeweft
+cat >/etc/nodeweft/config <<'CONFIG'
+REGION=${region}
+DEPLOY_BUCKET=${deploy_bucket}
+ECR_REGISTRY=${ecr_registry}
+SSM_PREFIX=${ssm_prefix}
+CONFIG
+chmod 600 /etc/nodeweft/config
+
+curl -sfL https://get.k3s.io | INSTALL_K3S_CHANNEL=${k3s_channel} INSTALL_K3S_EXEC="server --disable traefik --write-kubeconfig-mode 600" sh -
+
+cat >/usr/local/bin/nodeweft-apply <<'WRAPPER'
+#!/bin/bash
+set -euo pipefail
+source /etc/nodeweft/config
+script=$(mktemp)
+trap 'rm -f "$script"' EXIT
+aws s3 cp "s3://$DEPLOY_BUCKET/bin/nodeweft-apply.sh" "$script" --region "$REGION" --only-show-errors
+bash "$script" "$@"
+WRAPPER
+chmod 755 /usr/local/bin/nodeweft-apply
+
+cat >/etc/systemd/system/nodeweft-ecr-refresh.service <<'UNIT'
+[Unit]
+Description=Refresh the ECR pull secret
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/nodeweft-apply --refresh-ecr
+UNIT
+
+cat >/etc/systemd/system/nodeweft-ecr-refresh.timer <<'UNIT'
+[Unit]
+Description=Refresh the ECR pull secret every 6 hours
+
+[Timer]
+OnBootSec=30min
+OnUnitActiveSec=6h
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now nodeweft-ecr-refresh.timer
