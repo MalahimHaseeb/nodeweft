@@ -14,22 +14,19 @@ class EmailSender:
     def __init__(self, settings: AuthSettings):
         self._settings = settings
 
-    async def send_otp(self, recipient: str, code: str) -> None:
+    async def _send(self, recipient: str, subject: str, content: str) -> None:
         settings = self._settings
         if not settings.smtp_host:
             if settings.is_production:
                 raise ServiceUnavailableError("Email delivery is not configured")
-            logger.warning("Development mode: OTP for %s is %s", recipient, code)
+            logger.warning("Development mode email to %s subject=%s\n%s", recipient, subject, content)
             return
 
         message = EmailMessage()
         message["From"] = settings.smtp_from or settings.smtp_user
         message["To"] = recipient
-        message["Subject"] = "Your Nodeweft sign-in code"
-        message.set_content(
-            f"Your sign-in code is {code}. It expires in {settings.otp_ttl_seconds // 60} minutes.\n"
-            "If you did not request it, you can ignore this email."
-        )
+        message["Subject"] = subject
+        message.set_content(content)
         await aiosmtplib.send(
             message,
             hostname=settings.smtp_host,
@@ -38,4 +35,22 @@ class EmailSender:
             password=settings.smtp_password or None,
             start_tls=settings.smtp_starttls,
             timeout=15,
+        )
+
+    async def send_otp(self, recipient: str, code: str) -> None:
+        settings = self._settings
+        await self._send(
+            recipient,
+            "Your Nodeweft sign-in code",
+            f"Your sign-in code is {code}. It expires in {settings.otp_ttl_seconds // 60} minutes.\n"
+            "If you did not request it, you can ignore this email.",
+        )
+
+    async def send_invite(self, recipient: str, invited_by: str) -> None:
+        await self._send(
+            recipient,
+            "You were added to Nodeweft",
+            "You were added to Nodeweft by "
+            f"{invited_by}. Use your email to sign in and start creating/running your own workflows.",
+            "Website: https://nodeweft.malahim.dev\n"
         )

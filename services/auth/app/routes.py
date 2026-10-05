@@ -9,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from common.deps import get_current_user
+from common.deps import require_admin
 from common.errors import AppError, ServiceUnavailableError
 from common.rate_limit import SlidingWindowRateLimiter
 from common.responses import success_response
@@ -37,6 +38,10 @@ class VerifyOtpBody(BaseModel):
 
 class RefreshBody(BaseModel):
     refresh_token: str = Field(min_length=20, max_length=200)
+
+
+class InviteUserBody(BaseModel):
+    email: EmailStr
 
 
 async def get_session(request: Request):
@@ -112,3 +117,45 @@ async def logout(body: RefreshBody, session: AsyncSession = Depends(get_session)
 async def me(user: AuthUser = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
     stored = await session.get(User, user.id)
     return success_response(serialize_user(stored) if stored else {"id": user.id, "email": user.email, "role": user.role})
+
+
+@router.post("/users/invite", status_code=201, dependencies=[Depends(require_admin)])
+async def invite_user(
+    body: InviteUserBody,
+    request: Request,
+    user: AuthUser = Depends(require_admin),
+    session: AsyncSession = Depends(get_session),
+):
+    email = body.email.lower()
+    result = await session.execute(select(User).where(User.email == email))
+    invited = result.scalar_one_or_none()
+    created = False
+
+    if invited is None:
+        invited = User(id=str(uuid4()), email=email, role="member")
+        session.add(invited)
+        created = True
+        try:
+            await session.flush()
+        except IntegrityError:
+            await session.rollback()
+            result = await session.execute(select(User).where(User.email == email))
+            invited = result.scalar_one()
+            created = False
+
+    try:
+        await request.app.state.mailer.send_invite(email, user.email)
+    except Exception:
+        logger.exception("Failed to send invite email")
+        if created:
+            await session.rollback()
+        raise ServiceUnavailableError("Could not send the email, try again shortly") from None
+
+    if created:
+        await session.commit()
+
+    return success_response(
+        {"user": serialize_user(invited), "created": created},
+        "User invited",
+        201,
+    )
