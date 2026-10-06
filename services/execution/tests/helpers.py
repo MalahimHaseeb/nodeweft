@@ -5,6 +5,7 @@ from app.settings import ExecutionSettings
 
 
 def make_context(memory=None, run_id="run-1", run_input=None, **settings_overrides):
+    settings_overrides.setdefault("app_env", "development")
     settings = ExecutionSettings(**settings_overrides)
     return RunContext(
         run_id=run_id,

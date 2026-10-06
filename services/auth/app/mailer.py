@@ -50,7 +50,7 @@ class EmailSender:
         await self._send(
             recipient,
             "You were added to Nodeweft",
-            "You were added to Nodeweft by "
-            f"{invited_by}. Use your email to sign in and start creating/running your own workflows.",
-            "Website: https://nodeweft.malahim.dev\n"
+            f"You were added to Nodeweft by {invited_by}. "
+            "Use your email to sign in and start creating and running your own workflows.\n\n"
+            "Website: https://nodeweft.malahim.dev\n",
         )

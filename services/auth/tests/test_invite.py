@@ -3,6 +3,10 @@ from fastapi.testclient import TestClient
 
 from common.deps import get_current_user, require_admin
 from common.security import AuthUser
+from common.errors import register_error_handlers
+
+from app.mailer import EmailSender
+from app.settings import AuthSettings
 
 from app.models import User
 from app.routes import get_session, router
@@ -56,6 +60,7 @@ class FakeMailer:
 
 def make_client(session: FakeSession, mailer: FakeMailer, *, as_admin: bool = True) -> TestClient:
     app = FastAPI()
+    register_error_handlers(app)  
     app.include_router(router)
     app.state.mailer = mailer
 
@@ -120,3 +125,8 @@ def test_invite_requires_admin_role():
         response = client.post("/auth/users/invite", json={"email": "member.only@example.com"})
 
     assert response.status_code == 403
+
+
+async def test_send_invite_matches_send_signature():
+    sender = EmailSender(AuthSettings(app_env="development", smtp_host=""))
+    await sender.send_invite("a@example.com", "admin@example.com")
